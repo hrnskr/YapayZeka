@@ -13,31 +13,7 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfbase import pdfmetrics
 
-def export_texts_to_pdf(texts, output_filename):
-    # PDF dosyasını oluştur
-    pdf = SimpleDocTemplate(output_filename, pagesize=letter)
-    elements = []
 
-    # Türkçe karakter desteği için fontu ekleyin
-    pdfmetrics.registerFont(TTFont('DejaVuSans', 'DejaVuSans.ttf'))  # Font dosyasının yolu
-    styles = getSampleStyleSheet()
-    
-    # Normal stil için fontu ayarlayın
-    normal_style = ParagraphStyle(
-        name='Normal',
-        fontName='DejaVuSans',
-        fontSize=12,
-        leading=15,
-    )
-
-    for text in texts:
-        # Metni Paragraph ile oluştur ve PDF'ye ekle
-        paragraph = Paragraph(text, normal_style)
-        elements.append(paragraph)
-        elements.append(Spacer(1, 12))  # Her metin arasında boşluk bırak
-
-    # PDF dosyasını oluştur ve kaydet
-    pdf.build(elements)	
     
 class QuestionGeneratorApp:
     def __init__(self, root):
@@ -88,6 +64,8 @@ class QuestionGeneratorApp:
         # ~ # PDF Kaydet Butonu
         # ~ generate_button = ttk.Button(root, text="PDF Kaydet", command=self.export_texts_to_pdf(questions, output_filename))
         # ~ generate_button.pack(pady=10)
+        export_button = ttk.Button(root, text="PDF Olarak Dışa Aktar", command=self.export_texts_to_pdf)
+        export_button.pack(pady=10)
 
         # Yükleme Çubuğu ve Süre
         progress_frame = ttk.Frame(root)
@@ -106,6 +84,35 @@ class QuestionGeneratorApp:
         self.output_text = tk.Text(output_frame, wrap="word")
         self.output_text.pack(fill="both", expand=True, padx=10, pady=10)
         
+    # ~ def export_texts_to_pdf(texts, output_filename):
+    def export_texts_to_pdf(self):
+        output_filename='test.pdf'
+        texts = self.output_text.get("1.0", tk.END).strip().splitlines()
+        # PDF dosyasını oluştur
+        pdf = SimpleDocTemplate(output_filename, pagesize=letter)
+        elements = []
+
+        # Türkçe karakter desteği için fontu ekleyin
+        pdfmetrics.registerFont(TTFont('DejaVuSans', 'DejaVuSans.ttf'))  # Font dosyasının yolu
+        styles = getSampleStyleSheet()
+    
+        # Normal stil için fontu ayarlayın
+        normal_style = ParagraphStyle(
+            name='Normal',
+            fontName='DejaVuSans',
+            fontSize=12,
+            leading=15,
+        )
+
+        for text in texts:
+            # Metni Paragraph ile oluştur ve PDF'ye ekle
+            paragraph = Paragraph(text, normal_style)
+            elements.append(paragraph)
+            elements.append(Spacer(1, 12))  # Her metin arasında boşluk bırak
+
+        # PDF dosyasını oluştur ve kaydet
+        pdf.build(elements) 
+    
     def get_models(self):
         try:
             # "ollama list" komutunu çalıştır ve çıktısını al
@@ -171,7 +178,7 @@ class QuestionGeneratorApp:
             # Progress bar'ı tamamlanmış olarak ayarla
             self.progress['value'] = 100
             #soruları pdf kaydet
-            export_texts_to_pdf(questions, './test.pdf')
+            # ~ export_texts_to_pdf(questions, './test.pdf')
             # Soruları metin kutusuna ekle
             for q in questions:
                 self.output_text.insert(tk.END, f"- {q}\n")
@@ -204,7 +211,7 @@ class QuestionGeneratorApp:
             "model": model,
             "prompt": f"Lütfen {field} alanında {pcs} adet özgün soru üretiniz. Her bir soruyu '1.' ve '2.' ile numaralandırarak ayrı satırlarda yazınız."
         }
-        # ~ print(payload)
+
         headers = {
             "Content-Type": "application/json"
             # Gerekli ise yetkilendirme başlıkları ekleyin
@@ -255,6 +262,7 @@ class QuestionGeneratorApp:
             match = re.findall(pattern, generated_text)
             
             if match:
+                print(match)
                 # ~ question1 = match.group(1).strip()
                 # ~ question2 = match.group(2).strip()
                 # ~ questions = [question1, question2]
@@ -266,7 +274,7 @@ class QuestionGeneratorApp:
                     raise Exception("İki soru alınamadı. API'nin yanıt formatını kontrol edin.")
 
             # ~ return questions[:2]  # İlk iki soruyu döndür
-            return questions[:int(pcs)]  # İlk iki soruyu döndür
+            return questions[:int(pcs)+1]  # İlk N+1 soruyu döndür
 
         except requests.exceptions.RequestException as e:
             raise Exception(f"API çağrısı sırasında bir hata oluştu: {e}")
